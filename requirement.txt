@@ -5,4 +5,5 @@ hdbscan
 matplotlib
 numpy
 pandas
+gunicorn
 
