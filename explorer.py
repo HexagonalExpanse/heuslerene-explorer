@@ -50,6 +50,8 @@ recluster_options = [
 
 # ── 2) Dash app layout ─────────────────────────────────────────────
 app = Dash(__name__, suppress_callback_exceptions=True)
+server = app.server
+
 app.layout = html.Div([
     html.H2("UMAP + Clustering Explorer (from CSV)", style={"textAlign":"center"}),
 
@@ -451,4 +453,4 @@ def show_hover_image(hover, click):
     return f"data:image/png;base64,{b64}"
 # ── 4) Run ─────────────────────────────────────────────
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run_server()
