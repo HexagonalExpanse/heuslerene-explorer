@@ -14,6 +14,7 @@ from matplotlib.colors import ListedColormap
 import matplotlib.pyplot as plt
 from plotly.colors import qualitative
 import itertools
+import functools
 
 
 # ── 1) Paths & dropdown options ────────────────────────────────────────────────
@@ -221,7 +222,8 @@ def load_from_csv(resnet, latent_dim, steps, split, window, width):
     # 2) load fingerprints
     df       = pd.read_csv(fpath)
     filenames= df["filename"].tolist()        # must have this column
-    imgs     = df["image_b64"].tolist()
+    img_dir = Path("images") / f"bands_10width_{window}eV"
+    imgs = [str(img_dir / fname) for fname in filenames]
     X        = df.filter(like="z").to_numpy()
 
     # 3) load embedding as a DataFrame
@@ -433,10 +435,18 @@ def update_plot(store, algo, pvals, hide_noise, hide_nonnoise, double_cluster, r
 
 
 
+@functools.lru_cache(maxsize=512)
+def load_image_b64(img_path):
+    try:
+        with open(img_path, "rb") as f:
+            return f"data:image/png;base64,{base64.b64encode(f.read()).decode()}"
+    except Exception as e:
+        print(f"Error loading image {img_path}: {e}")
+        return None
+
 @app.callback(
     Output("hover-image", "src"),
-    [Input("umap-plot", "hoverData"),
-     Input("umap-plot","clickData")],
+    [Input("umap-plot", "hoverData"), Input("umap-plot", "clickData")],
     prevent_initial_call=True
 )
 def show_hover_image(hover, click):
@@ -449,8 +459,12 @@ def show_hover_image(hover, click):
 
     if not data or "points" not in data:
         return dash.no_update
-    b64 = data["points"][0]["customdata"][0]
-    return f"data:image/png;base64,{b64}"
+
+    img_path = data["points"][0]["customdata"][0]
+    return load_image_b64(img_path)
+
+
+
 # ── 4) Run ─────────────────────────────────────────────
 if __name__ == "__main__":
-    app.run_server()
+    app.run()
