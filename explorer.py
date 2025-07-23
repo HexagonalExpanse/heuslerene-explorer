@@ -50,7 +50,7 @@ recluster_options = [
 ]
 
 # ── 2) Dash app layout ─────────────────────────────────────────────
-app = Dash(__name__, suppress_callback_exceptions=True)
+app = Dash(__name__, title = "Band Exploration", suppress_callback_exceptions=True)
 server = app.server
 
 app.layout = html.Div([
@@ -103,10 +103,115 @@ app.layout = html.Div([
             }
         ),
         html.Div(id="recluster-popup", style={"display": "none"})
-    ])
+    ]),
+    html.Button("Open Welcome Message", id="open-welcome-btn", n_clicks=0),
+    html.Button(id="close-on-outside-click", style={"display": "none"}),
+
+    html.Div(
+    id="welcome-container",
+    children=[
+        html.Div([
+            html.Button("×", id="close-welcome-btn",
+                        style={"float": "right", "fontSize": "20px", "border": "none", "background": "none"}),
+            dcc.Markdown("""
+### Welcome to bands.heuslerene.com!
+
+This tool enables interactive exploration of the thousands of band structures produced in our high-throughput study of Monolayer Heusler Alloys.
+
+At its core, the tool uses a Residual Neural Network (ResNet) to autoencode each band structure image into a compact fingerprint of size **49**, **98**, or **147**, depending on the **Latent Space** dimension. These fingerprints are then projected into two dimensions using **UMAP**, allowing you to visualize and cluster the data. Hover over any point to see the corresponding band structure image.
+
+---
+
+#### 🔧 Interface Overview
+- **Autoencoder Model**  
+- **Clustering Model**  
+- **Advanced Options**
+
+---
+
+#### ✅ Recommended Settings
+To reproduce the results from our paper:
+
+**Autoencoder Parameters**
+- Resnet: **50**  
+- Latent Space: **3**  
+- Training Steps: **90**  
+- Split: **0.1**  
+- Window Size: **1 eV** (±1 eV around the Fermi energy)  
+- Line Width: **1**
+
+**Clustering Parameters**
+- Algorithm: **HDBSCAN**  
+- Cluster Min: **3**  
+- Sample Min: **2**  
+- Selection Method: `'leaf'`
+
+---
+
+#### ⚙️ Advanced Options
+- Apply a second **DBSCAN** clustering to the UMAP embedding (after excluding HDBSCAN noise points)  
+- Recluster **noise points** using the HDBSCAN parameters  
+- **Hide** noise points, non-noise points, or both  
+
+---
+
+#### ℹ️ Additional Notes
+- `'Unencoded'` ResNet means using the full 50,176-dimensional image representation as features  
+- For `'Unencoded'`, clustering is done only on the UMAP projection  
+- Hover images are not the exact model inputs but represent the same band structures  
+- Use the **Open Welcome Message** button to view this message again anytime
+
+            """),
+        ], style={
+        "maxHeight": "400px",
+        "overflowY": "auto",
+        "paddingRight": "10px"
+    }),
+    ],     style={
+        "display": "flex",  # <- Show on startup
+        "position": "fixed",
+        "top": "50%",
+        "left": "50%",
+        "transform": "translate(-50%, -50%)",
+        "zIndex": "1000",
+        "background": "white",
+        "padding": "20px",
+        "borderRadius": "10px",
+        "boxShadow": "0 0 10px rgba(0, 0, 0, 0.3)",
+        "width": "90%",
+        "maxWidth": "500px",
+        "maxHeight": "80%",
+        "overflowY": "auto"
+    }
+)
+
 ], style={"width":"80%","margin":"0 auto"})
 
 # ── 3) Callbacks ─────────────────────────────────────────────
+@app.callback(
+    Output("welcome-container", "style"),
+    Input("open-welcome-btn", "n_clicks"),
+    Input("welcome-container", "n_clicks"),
+    Input("close-welcome-btn", "n_clicks"),
+    State("welcome-container", "style"),
+    prevent_initial_call=True
+)
+def toggle_welcome(open_clicks, container_clicks, close_clicks, style):
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        raise dash.exceptions.PreventUpdate
+
+    triggered_id = ctx.triggered[0]["prop_id"].split(".")[0]
+
+    new_style = style.copy()
+    if triggered_id == "open-welcome-btn":
+        new_style["display"] = "flex"
+    else:
+        new_style["display"] = "none"
+    return new_style
+
+
+
 @app.callback(
     Output("adv-panel", "style"),
     Input("toggle-adv-btn", "n_clicks"),
@@ -464,7 +569,6 @@ def show_hover_image(hover, click):
     return load_image_b64(img_path)
 
 
-
 # ── 4) Run ─────────────────────────────────────────────
 if __name__ == "__main__":
-    app.run()
+    app.run(debug = False)
