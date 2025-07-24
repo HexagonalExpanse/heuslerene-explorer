@@ -605,8 +605,9 @@ def update_plot(store, algo, pvals, hide_noise, hide_nonnoise, double_cluster,
 
     # Get a boolean mask: does each point contain a selected element?
     highlight_mask = np.array([
-        any(e in selected_elements for e in tags) for tags in element_tags
+        all(e in tags for e in selected_elements) for tags in element_tags
     ]) if selected_elements else np.zeros(len(imgs), dtype=bool)
+
 
     highlight_mask = highlight_mask & keep  # Only show what's kept
 
@@ -665,4 +666,4 @@ def show_hover_image(hover, click):
 
 # ── 4) Run ─────────────────────────────────────────────
 if __name__ == "__main__":
-    app.run(debug = True)
+    app.run(debug = False)
