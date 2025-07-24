@@ -6,4 +6,4 @@ matplotlib
 numpy
 pandas
 gunicorn
-
+dash-bootstrap-components
