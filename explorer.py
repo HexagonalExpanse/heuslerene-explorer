@@ -15,11 +15,44 @@ import matplotlib.pyplot as plt
 from plotly.colors import qualitative
 import itertools
 import functools
-
+import dash_bootstrap_components as dbc
+import re
 
 # ── 1) Paths & dropdown options ────────────────────────────────────────────────
 CSV_DIR = Path(os.path.join(".", "fingerprints"))
 print(os.getcwd())
+
+
+ELEMENTS = {
+    'H', 'He', 'Li', 'Be', 'B', 'C', 'N', 'O', 'F', 'Ne',
+    'Na', 'Mg', 'Al', 'Si', 'P', 'S', 'Cl', 'Ar',
+    'K', 'Ca', 'Sc', 'Ti', 'V', 'Cr', 'Mn', 'Fe', 'Co', 'Ni',
+    'Cu', 'Zn', 'Ga', 'Ge', 'As', 'Se', 'Br', 'Kr',
+    'Rb', 'Sr', 'Y', 'Zr', 'Nb', 'Mo', 'Tc', 'Ru', 'Rh', 'Pd',
+    'Ag', 'Cd', 'In', 'Sn', 'Sb', 'Te', 'I', 'Xe',
+    'Cs', 'Ba', 'La', 'Ce', 'Pr', 'Nd', 'Pm', 'Sm', 'Eu', 'Gd',
+    'Tb', 'Dy', 'Ho', 'Er', 'Tm', 'Yb', 'Lu',
+    'Hf', 'Ta', 'W', 'Re', 'Os', 'Ir', 'Pt', 'Au', 'Hg',
+    'Tl', 'Pb', 'Bi', 'Po', 'At', 'Rn',
+    'Fr', 'Ra', 'Ac', 'Th', 'Pa', 'U', 'Np', 'Pu', 'Am', 'Cm',
+    'Bk', 'Cf', 'Es', 'Fm', 'Md', 'No', 'Lr',
+    'Rf', 'Db', 'Sg', 'Bh', 'Hs', 'Mt', 'Ds', 'Rg', 'Cn',
+    'Nh', 'Fl', 'Mc', 'Lv', 'Ts', 'Og'
+}
+
+df = pd.read_csv("fingerprints/unencoded/unencoded_window1eV_width1_embedding.csv")
+
+# Remove ".png" and extract elements
+filenames = df["filename"].str.replace(".png", "", regex=False)
+
+def extract_elements(formula):
+    parts = re.findall(r'[A-Z][a-z]?', formula)
+    return [el for el in parts if el in ELEMENTS]
+
+df['elements'] = filenames.apply(extract_elements)
+
+# Flatten → unique → sort
+element_list = sorted(set(df['elements'].explode()))
 
 feature_values = {
     "Resnet"        : [0, 18, 50],
@@ -29,6 +62,16 @@ feature_values = {
     "Window Size"   : [1, 2, 3],
     "Line Width"    : [1],
 }
+feature_defaults = {
+    "Resnet": 50,
+    "Latent Space": 3,
+    "Training Steps": 90,
+    "Split": 0.1,
+    "Window Size": 1,
+    "Line Width": 1,
+}
+
+
 feature_options = {
     name: [{"label": str(v), "value": v} for v in vals]
     for name, vals in feature_values.items()
@@ -50,7 +93,8 @@ recluster_options = [
 ]
 
 # ── 2) Dash app layout ─────────────────────────────────────────────
-app = Dash(__name__, title = "Band Exploration", suppress_callback_exceptions=True)
+app = Dash(__name__, title="Band Exploration", suppress_callback_exceptions=True,
+           external_stylesheets=[dbc.themes.BOOTSTRAP])
 server = app.server
 
 app.layout = html.Div([
@@ -61,7 +105,7 @@ app.layout = html.Div([
             html.Label(name, style={"fontSize":"0.8rem","marginBottom":"2px"}),
             dcc.Dropdown(
                 id=f"feat-{i}", options=feature_options[name],
-                value=feature_values[name][0], clearable=False,
+                value=feature_defaults[name], clearable=False,
                 style={"width":"180px"}
             )
         ], style={"margin":"4px","display":"flex","flexDirection":"column"})
@@ -73,15 +117,37 @@ app.layout = html.Div([
             dcc.Dropdown(
                 id="algo-dd", options=clust_opts,
                 value="hdbscan", clearable=False,
-                style={"width":"200px","marginRight":"8px"}
+                style={"width":"200px"}
             ),
             html.Button("Advanced Options", id="toggle-adv-btn", n_clicks=0),
+
+            html.Div([
+                html.Label("Filter by Element:", style={"fontSize": "0.8rem"}),
+                dbc.DropdownMenu(
+                    label="Select Elements",
+                    children=[
+                        dbc.Checklist(
+                            id="element-checklist",
+                            options=[{"label": el, "value": el} for el in element_list],
+                            value=[],
+                            inline=False,
+                            style={
+                                "columnCount": 3,  # ⬅️ This makes it 3 columns
+                                "padding": "10px"
+                            }
+                        )
+                    ],
+                    toggle_style={"width": "200px"},
+                    className="ml-2"
+                )
+            ], style={"display": "flex", "flexDirection": "column", "marginLeft": "10px"})
+
         ], style={"display":"flex", "alignItems":"center", "gap":"10px"}),
 
         html.Div(id="param-controls"),
-
         html.Div(id="adv-panel", style={"display": "none", "marginTop": "10px"})
     ], style={"display":"flex", "flexDirection":"column"}),
+
 
 
     html.Div([
@@ -291,7 +357,7 @@ def make_param_inputs(algo, window_size):
         html.Label("Sample Min:", style={'marginLeft': '20px'}),
         dcc.Input(
             id={"type": "param", "name": "sample_min"},
-            type="number", value=3, min=1, step=1,
+            type="number", value=2, min=1, step=1,
             style={"width": "100px"}
         ),
 
@@ -405,12 +471,15 @@ def update_hide_nonnoise_style(active):
     Input("feat-0", "value"),
     Input("recluster-active", "data"),
     Input("recluster-min-cluster-size", "value"),
-    Input("recluster-min-samples", "value")
+    Input("recluster-min-samples", "value"),
+    Input("element-checklist", "value")  # ← NEW
 )
-def update_plot(store, algo, pvals, hide_noise, hide_nonnoise, double_cluster, resnet, recluster_active,
-                recluster_mcs, recluster_ms):
+def update_plot(store, algo, pvals, hide_noise, hide_nonnoise, double_cluster,
+                resnet, recluster_active, recluster_mcs, recluster_ms, selected_elements):
     if not store:
         raise dash.exceptions.PreventUpdate
+    if double_cluster is None:
+        double_cluster = "off"
 
     X = np.array(store["latents"])
     imgs = np.array(store["imgs"])
@@ -530,6 +599,31 @@ def update_plot(store, algo, pvals, hide_noise, hide_nonnoise, double_cluster, r
         showlegend=False
     ))
 
+    # Already loaded earlier:
+    filenames = [Path(p).stem for p in imgs]  # Remove .png
+    element_tags = [re.findall(r"[A-Z][a-z]?", name) for name in filenames]
+
+    # Get a boolean mask: does each point contain a selected element?
+    highlight_mask = np.array([
+        any(e in selected_elements for e in tags) for tags in element_tags
+    ]) if selected_elements else np.zeros(len(imgs), dtype=bool)
+
+    highlight_mask = highlight_mask & keep  # Only show what's kept
+
+    fig.add_trace(go.Scatter(
+        x=proj[highlight_mask][:, 0],
+        y=proj[highlight_mask][:, 1],
+        mode="markers",
+        marker=dict(
+            size=9,
+            color='rgba(0,0,0,0)',
+            line=dict(color="gold", width=2)
+        ),
+        hoverinfo="skip",
+        showlegend=False
+    ))
+
+
     fig.update_layout(
         margin=dict(l=0, r=0, t=30, b=0),
         xaxis_visible=False,
@@ -571,4 +665,4 @@ def show_hover_image(hover, click):
 
 # ── 4) Run ─────────────────────────────────────────────
 if __name__ == "__main__":
-    app.run(debug = False)
+    app.run(debug = True)
