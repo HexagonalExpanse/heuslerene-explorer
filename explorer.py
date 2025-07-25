@@ -103,7 +103,7 @@ app = Dash(__name__, title="Band Exploration", suppress_callback_exceptions=True
 server = app.server
 
 app.layout = html.Div([
-    html.H2("UMAP + Clustering Explorer (from CSV)", style={"textAlign":"center"}),
+    html.H2("Heuslerene Band Explorer", style={"textAlign":"center"}),
 
     html.Div([
         html.Div([
