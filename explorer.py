@@ -690,4 +690,4 @@ def show_hover_image(hover, click):
 
 # ── 4) Run ─────────────────────────────────────────────
 if __name__ == "__main__":
-    app.run(debug = False, port=8051)
+    app.run(debug = False)
