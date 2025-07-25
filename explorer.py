@@ -361,9 +361,6 @@ def make_param_inputs(algo, window_size):
             )
         ])
 
-    # Control whether the dropdown is disabled or not
-    allow_selection = window_size == 1
-
     return html.Div([
         html.Label("Cluster Min:"),
         dcc.Input(
@@ -386,7 +383,7 @@ def make_param_inputs(algo, window_size):
                 {"label": "leaf", "value": "leaf"},
                 {"label": "eom", "value": "eom"}
             ],
-            value="eom" if allow_selection else "leaf",
+            value="leaf",
             clearable=False,
             disabled=False,
             style={"width": "150px"}
