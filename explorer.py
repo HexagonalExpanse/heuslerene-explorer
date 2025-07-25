@@ -87,6 +87,11 @@ clust_opts = [
     {"label": "HDBSCAN", "value": "hdbscan"},
 ]
 
+search_opts = [
+    {"label": "Inclusive", "value": "inclusive"},
+    {"label": "Exclusive", "value": "exclusive"}
+]
+
 recluster_options = [
     {'label': 'Off', 'value' :'off'},
     {'label': 'DBSCAN', 'value': 'DBSCAN'},
@@ -140,7 +145,12 @@ app.layout = html.Div([
                     toggle_style={"width": "200px"},
                     className="ml-2"
                 )
-            ], style={"display": "flex", "flexDirection": "column", "marginLeft": "10px"})
+            ], style={"display": "flex", "flexDirection": "column", "marginLeft": "10px"}),
+            dcc.Dropdown(
+                id="search-dd", options=search_opts,
+                value="inclusive", clearable=False,
+                style={"width":"200px"}
+            ),
 
         ], style={"display":"flex", "alignItems":"center", "gap":"10px"}),
 
@@ -192,6 +202,7 @@ At its core, the tool uses a Residual Neural Network (ResNet) to autoencode each
 - **Autoencoder Model**  
 - **Clustering Model**  
 - **Advanced Options**
+- **Search**
 
 ---
 
@@ -211,6 +222,13 @@ To reproduce the results from our paper:
 - Cluster Min: **3**  
 - Sample Min: **2**  
 - Selection Method: `'leaf'`
+
+---
+
+#### 🔎 Search
+- Search for specific elements in the band structures
+- **Inclusive** shows all materials with the selected elements
+- **Exclusive** only shows materials with all the selected elements
 
 ---
 
@@ -472,10 +490,11 @@ def update_hide_nonnoise_style(active):
     Input("recluster-active", "data"),
     Input("recluster-min-cluster-size", "value"),
     Input("recluster-min-samples", "value"),
-    Input("element-checklist", "value")  # ← NEW
+    Input("element-checklist", "value"),
+    Input("search-dd", "value")
 )
 def update_plot(store, algo, pvals, hide_noise, hide_nonnoise, double_cluster,
-                resnet, recluster_active, recluster_mcs, recluster_ms, selected_elements):
+                resnet, recluster_active, recluster_mcs, recluster_ms, selected_elements, search):
     if not store:
         raise dash.exceptions.PreventUpdate
     if double_cluster is None:
@@ -604,9 +623,14 @@ def update_plot(store, algo, pvals, hide_noise, hide_nonnoise, double_cluster,
     element_tags = [re.findall(r"[A-Z][a-z]?", name) for name in filenames]
 
     # Get a boolean mask: does each point contain a selected element?
-    highlight_mask = np.array([
-        all(e in tags for e in selected_elements) for tags in element_tags
-    ]) if selected_elements else np.zeros(len(imgs), dtype=bool)
+    if search == 'exclusive':
+        highlight_mask = np.array([
+            all(e in tags for e in selected_elements) for tags in element_tags
+        ]) if selected_elements else np.zeros(len(imgs), dtype=bool)
+    else:
+        highlight_mask = np.array([
+            any(e in tags for e in selected_elements) for tags in element_tags
+        ]) if selected_elements else np.zeros(len(imgs), dtype=bool)
 
 
     highlight_mask = highlight_mask & keep  # Only show what's kept
@@ -666,4 +690,4 @@ def show_hover_image(hover, click):
 
 # ── 4) Run ─────────────────────────────────────────────
 if __name__ == "__main__":
-    app.run(debug = False)
+    app.run(debug = False, port=8051)
