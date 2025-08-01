@@ -178,21 +178,15 @@ app.layout = html.Div([
         html.Img(
             id="hover-image",
             style={
-                # let the image use its natural size up to these caps
                 "width": "auto",
                 "height": "auto",
-                "maxWidth": "420px",
-                "maxHeight": "420px",
-
-                # keep aspect ratio and avoid warping
+                "maxWidth": "420px",   # cap, adjust as you like
+                "maxHeight": "80vh",
                 "objectFit": "contain",
-
-                # reduce blur from resampling (helps with line art and plots)
-                "imageRendering": "crisp-edges",  # or "pixelated" if you prefer sharp pixels
-
+                "imageRendering": "crisp-edges",  # or "pixelated" for razor-sharp pixels
                 "display": "inline-block",
                 "verticalAlign": "top",
-                "marginLeft": "16px"
+                "marginLeft": "16px",
             }
         ),
         html.Div(id="recluster-popup", style={"display": "none"})
