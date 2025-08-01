@@ -173,13 +173,25 @@ app.layout = html.Div([
         html.Img(
             id="hover-image",
             style={
-                "width":"300px","height":"auto",
-                "display":"inline-block","verticalAlign":"top",
-                "marginLeft":"16px"
+                # let the image use its natural size up to these caps
+                "width": "auto",
+                "height": "auto",
+                "maxWidth": "420px",
+                "maxHeight": "420px",
+
+                # keep aspect ratio and avoid warping
+                "objectFit": "contain",
+
+                # reduce blur from resampling (helps with line art and plots)
+                "imageRendering": "crisp-edges",  # or "pixelated" if you prefer sharp pixels
+
+                "display": "inline-block",
+                "verticalAlign": "top",
+                "marginLeft": "16px"
             }
         ),
         html.Div(id="recluster-popup", style={"display": "none"})
-    ]),
+    ], style={"display":"flex", "flexDirection":"row"}),
     html.Button("Open Welcome Message", id="open-welcome-btn", n_clicks=0),
     html.Button(id="close-on-outside-click", style={"display": "none"}),
 
