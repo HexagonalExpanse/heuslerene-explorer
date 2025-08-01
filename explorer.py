@@ -163,7 +163,12 @@ app.layout = html.Div([
     html.Div([
         dcc.Graph(
             id="umap-plot", config={"scrollZoom":True},
-            style={"height":"650px","width":"70%","display":"inline-block"}
+            style={
+                "height": "650px",
+                "width": "70%",
+                "minWidth": "calc(650px / 2)",  # = 325px
+                "display": "inline-block"
+            }
         ),
         dcc.Store(id="latent-store"),
         dcc.Store(id="adv-visible", data=False),
